@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+# define a word from princeton wordnet
+from lxml.html import parse
+import subprocess
+import sys
+import os
+import webbrowser
+
+if sys.argv[1] == "--html":
+	html = True
+	output = open("/tmp/define_html_output.html", 'w')
+	output.write('''<style type="text/css">
+	dt {
+		font-style: italic;
+		display: inline;
+	}
+	dt:after {
+		content: ", ";
+	}
+	dt.last:after {
+		content: ". ";
+	}
+</style>
+''')
+else:
+	html = False
+
+if html:
+	output.write( '<dl>\n' )
+	words = sys.argv[2:]
+else:
+	words = sys.argv[1:]
+
+for word in words:
+	doc = parse("http://wordnetweb.princeton.edu/perl/webwn?s=%s" % word).getroot()
+	for li in doc.cssselect('ul li'):
+		definition = li.text_content().split(" ", 1)[1]
+		word = definition.split(')', 1)[1].split('(',1)[0][1:]
+		definition = definition.replace(word, "")
+		if html:
+			for item in word.split(','):
+				if item == word.split(',')[-1]:
+					which = "last"
+				else:
+					which = ""
+				output.write( '\t<dt class="'+which+'">'+item.strip()+'</dt>\n' )
+		else:
+			subprocess.call("tput bold", shell=True)
+			print word
+		if html:
+			output.write( '\t<dd>'+definition+'</dd>\n\n' )
+		else:
+			subprocess.call("tput sgr0", shell=True)
+			print definition
+		if not html:
+			print
+if html:
+	output.write( '</dl>\n' )
+	webbrowser.open(output.name)
+	output.close()
+
+

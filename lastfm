@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# this one uses the last.fm api
+import urllib2
+import feedparser
+import datetime
+import sys
+
+class Song:
+    # parse an entry in the last.fm rss feed
+    def __init__(self, track):
+        track_info = track.title.strip()
+        track_info = track_info.encode('utf-8')
+        self.artist = track_info.split('–',1)[0].strip()
+        self.title = track_info.split('–',1)[1].strip()
+        self.last_played = datetime.datetime.strptime(track.date, "%a, %d %b %Y %H:%M:%S +0000") # e.g. Fri, 17 Sep 2010 18:19:49 +0000 (RFC 2822)
+
+def latest_tracks(user):
+    feed = "http://ws.audioscrobbler.com/1.0/user/"+user+"/recenttracks.rss"
+    feed_data = feedparser.parse(feed)
+
+    latest = [] 
+
+    for track in feed_data.entries:
+        latest.append(Song(track))
+
+    return latest
+
+def format_elapsed(timedelta):
+    time_elapsed = []
+    if timedelta.days > 0:
+        time_elapsed.append((str(timedelta.days) + " days"))
+    if timedelta.seconds > 0:
+        hours = timedelta.seconds // 3600
+        minutes = (timedelta.seconds - hours*3600) // 60
+        if hours > 0:
+            time_elapsed.append((str(hours) + " hours"))
+        if minutes >= 0:
+            time_elapsed.append((str(minutes) + " minutes"))
+    if time_elapsed:
+        elapsed_string = ", ".join(time_elapsed) + ' ago'
+    else:
+        elapsed_string = 'Just now'
+    return elapsed_string
+
+if __name__ == "__main__":
+    try:
+        user = sys.argv[1]
+    except:
+        user = 'zacharydenton'
+    for track in latest_tracks(user):
+        artist = track.artist 
+        title = track.title
+        date = track.last_played
+        elapsed = format_elapsed(datetime.datetime.utcnow() - date)
+
+        # bold output
+        print elapsed,"- \033[1m"+artist+"\033[0m","-",title

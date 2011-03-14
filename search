@@ -1,0 +1,52 @@
+#!/usr/bin/python
+# searches google
+import urllib
+import json
+import pprint
+import sys
+import subprocess
+import re
+import htmlentitydefs
+
+def strip_tags(value):
+	"Return the given HTML with all tags stripped."
+	return re.sub(r'<[^>]*?>', '', value) 
+
+def convert_html_entities(s):
+	matches = re.findall("&#\d+;", s)
+	if len(matches) > 0:
+		hits = set(matches)
+		for hit in hits:
+			name = hit[2:-1]
+			try:
+				entnum = int(name)
+				s = s.replace(hit, unichr(entnum))
+			except ValueError:
+				pass
+
+	matches = re.findall("&\w+;", s)
+	hits = set(matches)
+	amp = "&amp;"
+	if amp in hits:
+		hits.remove(amp)
+	for hit in hits:
+		name = hit[1:-1]
+		if htmlentitydefs.name2codepoint.has_key(name):
+			s = s.replace(hit, unichr(htmlentitydefs.name2codepoint[name]))
+	s = s.replace(amp, "&")
+	return s
+
+url = "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&q=" + '+'.join(sys.argv[1:])
+results_page = urllib.urlopen(url)
+results = json.loads(results_page.read())
+
+for result in results['responseData']['results']:
+	subprocess.call('tput bold', shell=True)
+	subprocess.call('tput setf 4', shell=True)
+	print convert_html_entities(result['titleNoFormatting'])
+	subprocess.call('tput sgr0', shell=True)
+	subprocess.call('tput setf 1', shell=True)
+	print convert_html_entities(result['url'])
+	subprocess.call('tput sgr0', shell=True)
+	print convert_html_entities(strip_tags(result['content']))
+	print

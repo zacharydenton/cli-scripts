@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+import xml.etree.ElementTree as ET
+import urllib
+import sys
+
+WEATHER_URL = 'http://xml.weather.yahoo.com/forecastrss?p=%s'
+WEATHER_NS = 'http://xml.weather.yahoo.com/ns/rss/1.0'
+
+def GetWeather(zipcode):
+	url = WEATHER_URL % zipcode
+	rss = ET.parse(urllib.urlopen(url)).getroot()
+	ylocation = rss.find('channel/{%s}location' % WEATHER_NS)
+	location = [ylocation.get('city'), ylocation.get('region'), ylocation.get('country')]
+	
+	ywind = rss.find('channel/{%s}wind' % WEATHER_NS)
+	wind_chill = ywind.get('chill') +  u'\u00b0' + 'F'
+	wind_speed = ywind.get('speed') +' mph'
+	
+	ycondition = rss.find('channel/item/{%s}condition' % WEATHER_NS)
+	current_condition = ycondition.get('text')
+	current_temp = ycondition.get('temp') +  u'\u00b0' + 'F'
+	id = ycondition.get('code')
+	img_url = 'http://l.yimg.com/us.yimg.com/i/us/we/52/'+id+'.gif'
+	
+	return {
+        'condition':current_condition,
+        'temperature':current_temp,
+        'image':img_url, 
+        'location':location, 
+        'wind_chill':wind_chill,
+        'wind_speed':wind_speed
+    }
+
+if __name__ == '__main__':
+	current = GetWeather(21601)
+	condition = current['condition'].lower()
+	temperature = current['temperature']
+	location = ', '.join(current['location'])
+	wind_chill = current['wind_chill']
+	wind_speed = current['wind_speed']
+
+	if temperature != wind_chill:
+		print "%(location)s: %(temperature)s (feels like %(wind_chill)s) and %(condition)s." % \
+			{'location':location,'temperature':temperature,'wind_chill':wind_chill, 'condition':condition}
+	else:
+		print "%(location)s: %(temperature)s and %(condition)s." % \
+			{'location':location,'temperature':temperature,'wind_chill':wind_chill, 'condition':condition}
